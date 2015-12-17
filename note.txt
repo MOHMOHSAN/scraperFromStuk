@@ -1,0 +1,45 @@
+1:		rails new scraperFromStuk
+
+2:		copy twitter bootstrap gem rails from https://github.com/seyhunak/twitter-bootstrap-rails
+		gem 'twitter-bootstrap-rails', :git => 'git://github.com/seyhunak/twitter-bootstrap-rails.git'
+
+
+3:		run css generator
+		rails generate bootstrap:install static
+
+
+4:		form gem from https://github.com/plataformatec/simple_form
+		inside gemfile 
+		gem 'simple_form' AND bundle install
+
+
+5:		run form generator
+		rails generate simple_form:install --bootstrap then 
+		can view at lib > templates > erb > scaffold
+
+
+6:		devise gem from https://github.com/plataformatec/devise
+		gem 'devise' AND bundle install
+
+
+7:		run devise generator
+		rails g devise:install
+		rails g devise User
+
+
+8:		then rake db:migrate 
+		** if want to change sth , go to migration file and edit before migration
+
+
+9:		then generate all required views for devise
+
+
+//--------- copy this project to github
+
+10:		inside github account -> create new repository and choose http rather than ssh
+
+11:		go to terminal and enter git init to initialize repositor
+
+12:		git status to check which files are added
+		
+13:		git add . means to add all files 
