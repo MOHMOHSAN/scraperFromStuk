@@ -32,6 +32,17 @@ gem 'simple_form'
 
 #devise
 gem 'devise'
+
+
+#url validation
+gem 'validate_url'
+
+#html and xml parser
+gem 'nokogiri'
+
+#utf8
+gem 'utf8_utils'
+
 # Use ActiveModel has_secure_password
 # gem 'bcrypt', '~> 3.1.7'
 

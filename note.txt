@@ -34,7 +34,7 @@
 9:		then generate all required views for devise
 
 
-//--------- copy this project to github
+//--------- copy this project to github ----------
 
 10:		inside github account -> create new repository and choose http rather than ssh
 
@@ -42,4 +42,364 @@
 
 12:		git status to check which files are added
 		
-13:		git add . means to add all files 
+13:		git add . means to add all files / then check git status again. You will see all files are added.
+
+14:		then commit by sending message
+		git commit -m "first commit" and then git status 
+
+15:		then use git remote -v , can see nothing change
+
+16:		then copy -> git remote add origin https://github.com/MOHMOHSAN/scraperFromStuk.git
+		(getting from github account)
+
+
+17:		then git push -u origin master
+
+18:		then refresh github page, can see current project that has been added
+
+
+//--------- adding home page and header ------------
+
+19:		rails g controller pages home
+
+20:		inside route.rb, change to
+		root 'pages#home'
+
+21:		then inside pages>home.html.erb
+		<div class="text-center landing">
+		<h1>Movies I Want to Watch</h1>
+		<br>
+		<%= link_to "Try it Now", new_user_registration_path, class: "btn btn-primary btn-lg" %>
+		</div>
+
+
+22:     app > views > layouts > 
+		create new file called _header.html.erb and copy this
+
+		<nav class="navbar navbar-default">
+		  <div class="container-fluid">
+		    <!-- Brand and toggle get grouped for better mobile display -->
+		    <div class="navbar-header">
+		      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+		        <span class="sr-only">Toggle navigation</span>
+		        <span class="icon-bar"></span>
+		        <span class="icon-bar"></span>
+		        <span class="icon-bar"></span>
+		      </button>
+		       <%= link_to "Scraper" , root_path, class: "navbar-brand" %>
+		    </div>
+
+		    <!-- Collect the nav links, forms, and other content for toggling -->
+		    <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+		     
+		      <ul class="nav navbar-nav navbar-right">
+		        <% if current_user %>
+		          <li><%= link_to "Settings", edit_user_registration_path %></li>
+		          <li><%= link_to "Log out", destroy_user_session_path, method: :delete %></li>
+		        <% else %>
+		          <li><%= link_to "Log in", new_user_session_path %></li>
+		        <% end %>
+		      </ul>
+		    </div><!-- /.navbar-collapse -->
+		  </div><!-- /.container-fluid -->
+		</nav>
+
+
+23:		inside application.html.erb
+		add , 
+		<%= render 'layouts/header' %>
+		<div class = "container"></div>
+
+
+
+// --------- Scaffolding movie --------------//
+24:		rails generate scaffold movie title:string hotness:integer image_url:string synopsis:text rating:string genre:string director:string release_date:date runtime:string user_id:integer
+
+25:		rake db:migrate
+
+
+26:		add user authentication inside pageController.rb
+		def home
+			if current_user
+				redirect_to movies_path
+			end
+		end
+
+
+27:		inside movies > index.html.erb
+		add <table class="table">
+
+
+
+//---------- associate user and movie model --------//
+28:		inside movie.rb
+		belongs_to :user
+
+
+29:		inside user.rb
+		has_many :movies, dependent: :destroy
+
+
+30:		inside movies_controller.rb > index
+		change Movie.all to current_user.movies
+
+
+31:		inside movies_controller.rb > create
+		change Movie.new(movie_params) to current_user.movies.new(movie_params)
+
+
+32:		views > movies > _form.html.erb
+		delete f.input :user_id 
+
+
+33:		views > movies > index.html.erb
+		delete <td> movie.user_id </td> and <td> User </td>
+
+34:		views > movies > show.html.erb
+		delete data relating with user
+
+// ------------- adding validation to movie model ------------- //
+
+35:		models > movie.rb
+		validates :title, presence: true
+		validates :hotness, :numerically => {:allow_blank => true }
+
+
+36:		to validate image url , add gem from https://github.com/perfectline/validates_url
+		gem "validate_url" then
+		validate :image_url, :url => {:allow_blank => true }
+
+
+// -------------- Scraping ------------ //
+
+//------------ installing Nokogiri ---------- //
+
+37:		install gem from https://github.com/sparklemotion/nokogiri and for ref : 
+		http://ruby.bastardsbook.com/chapters/html-parsing/
+
+		gem 'nokogiri' , bundle install
+
+38:		initalizers > create new file called noko.rb 
+		or inside terminal type : touch config/initializers/noko.rb
+		and add these
+		require 'rubygems'
+		require 'nokogiri'
+		require 'open-uri'
+
+39:		for testing
+		go to rails c and copy this
+		page = Nokogiri::HTML(open("http://www.google.com"))
+
+
+//------------ fetching data from rottentomatoes via console -------- //
+
+40:		rails c and doc = Nokogiri::HTML(open("http://www.rottentomatoes.com/m/the_martian/"))
+
+41:		doc.css('script').remove
+
+42:		using xpath , ref : http://www.w3schools.com/xsl/xpath_intro.asp
+		to retrieve director Name 
+		doc.at("//span[@itemprop = 'name']").text
+
+		to retrieve movie name
+		@itemprop = attr name
+		doc.at("//h1[@itemprop = 'name']").text
+
+		to retrieve rating value
+		doc.at("//span[@itemprop = 'ratingValues']").text.to_i
+
+
+		to retrieve image which wrap inside div with id=movie-image-section
+		doc.at_css('#movie-image-section img')['src']
+
+
+		to retrieve pg rating 
+		doc.at("//td[@itemprop= 'contentRating']").text
+
+		to retrieve release data
+		doc.at("//td[@itemprop= 'datePublished']").text.to_date
+
+		to retrieve synopsis 
+		doc.css("#movieSynopsis")
+
+//------------ generating scraper model ---------- //
+
+43:		models -> create new file called scrape.rb
+
+44:		copy this
+		
+		class Scrape
+
+		#  in order to access attribute from movie model, this is needed
+		attr_accessor :title, :hotness, :image_url, :rating, :director,
+		:genre, :release_date, :runtime, :synopsis, :failure
+
+		def scrape_new_movie
+			begin
+				doc = Nokogiri::HTML(open("http://www.rottentomatoes.com/m/the_martian/"))
+				doc.css('script').remove 
+				self.title = doc.at("//span[@itemprop = 'name']").text  
+				self.hotness = doc.at("//span[@itemprop = 'ratingValue']").text.to_i 
+				self.image_url = doc.at_css('#movie-image-section img')['src'] 
+				self.rating = doc.at("//td[@itemprop = 'contentRating']").text 
+				self.director = doc.at("//td[@itemprop = 'director']").css('a').first.text 
+				self.genre = doc.at("//span[@itemprop = 'genre']").text 
+
+				#  no more date field in rotten tomatoes website
+				self.release_date = ("Oct 2,2015").to_date 	
+							or
+				self.release_date = doc.at("//td[@itemprop = 'datePublished']").text.to_date 
+
+				self.runtime = doc.at("//time[@itemprop = 'duration']").text 
+				self.synopsis = doc.css('#movieSynopsis').text 
+				return true
+			rescue Exception => e
+			self.failure = "Something went wrong with the scrape"
+			end
+		end
+
+		use : begin to catch exception
+
+
+
+45:		change synopsis for validation
+		s =  doc.css('#movieSynopsis').text 
+		if ! s.valid_encoding?
+			s= s.encode("UTF-16be",:invalid => :replace, :replace => "?").encode("UTF-8")
+		end
+		self.synopsis = s
+
+
+46:		add new method inside scrape.rb
+		def save_movie
+			movie = Movie.new(
+				title: self.title,
+				hotness: self.hotness,
+				image_url: self.image_url,
+				synopsis: self.synopsis,
+				rating: self.rating,
+				genre: self.genre,
+				director: self.director,
+				release_date: self.release_date,
+				runtime: self.runtime
+				)
+			movie.save
+		end
+
+
+
+47:		// for testing , go to terminal , rails c
+		s = Scrape.new then s.scrape_new_movie(method u created inside scrape.rb)
+		if there is no error, s.save_movie(method inside scrape.rb) to save movie
+
+		m = Movie.last , m.user_id = User.last.id , m.save
+		User.last.movies.all to check
+
+
+
+48:		//-------- adding 2 fields : scrape, new movie tags in header --------
+
+		views > layouts > header.html.erb > above  <ul class="nav navbar-nav navbar-right"> , add 
+		   <% if current_user %>
+		    <%= form_tag new_movie_path,:method => 'get', class: "navbar-form navbar-left" do %>
+		    <%= text_field_tag :search, params[:movie_url], class: "form-control", placeholder: "Rotten tomatoes" %>
+		    <%= submit_tag "Scrape", :name => nil, class: "btn btn-default" %>
+		    <%= link_to "New Movie", new_movie_path, class: "btn btn-default" %>
+		    <% end %>
+		  <% end %> 
+
+
+
+
+49:		// --------- controller -> movies_controller.rb
+		add ->  before_action :scrape, only: [:new]
+
+		then scrape method that we have done testing in terminal
+		  def scrape
+		    s = Scraper.new
+		    s.scrape_new_movie(params[:search].to_s) // not s.scrape_new_movie(params[:search]).to_s
+
+		    # create global variable
+		    @movie_data = s
+		  end
+
+50:		edit new controller
+		
+		 def new
+		    if @movie_data.failure == nil  // must be == nil not = nil
+		      @movie = Movie.new(
+		          title: @movie_data.title,
+		          hotness: @movie_data.hotness,
+		          image_url: @movie_data.image_url,
+		          synopsis: @movie_data.synopsis,
+		          rating: @movie_data.rating,
+		          genre: @movie_data.genre,
+		          director: @movie_data.director,
+		          release_date: @movie_data.release_date,
+		          runtime: @movie_data.runtime
+		        )
+		    else
+		      @movie = Movie.new
+		      if params[:search]
+		        @failure = @movie_data.failure
+		      end
+		    end   
+		  end
+
+
+51:		then delete save_movie method from scraper.rb
+		in this stage, u can see all ur input will be automatically filled
+
+
+//---------------- use utf-8 gem for cleaning up utf8 strings ------------
+52:		gem from https://github.com/norman/utf8_utils
+		gem 'utf8_utils' , bundle install
+
+
+53:		Now change 
+		s =  doc.css('#movieSynopsis').text 
+		if ! s.valid_encoding?
+			s= s.encode("UTF-16be",:invalid => :replace, :replace => "?").encode("UTF-8")
+		end
+		self.synopsis = s
+
+		to 
+		self.synopsis = doc.css('#movieSynopsis').text.tidy_bytes 
+
+//------------ Styling for image inside index , create movie ------- 
+
+
+54:		inside views > movies> index.html.erb
+		 change this  <td><%= movie.image_url %></td>
+		 to <td><%= image_tag movie.image_url %></td>
+
+		 and delete <%= link_to 'New Movie', new_movie_path %>
+
+
+55: 	inside views > movies > _form.html.erb
+		add <%= image_tag @movie.image_url %> ( not  <%= image_tag :image_url %>)
+
+
+56:		show error message if there is failure inside movies > new.html.erb
+		<% if @failure %>
+			<h3><%= @failure %></h3>
+		<% end %>
+
+
+57:		views > movies > show.html.erb
+		change to   <%= image_tag @movie.image_url %> and outside <p>
+
+
+
+// ----------- Deploy ---------------//
+58:		inside terminal > current project
+		enter heroku login
+		then enter email and password
+		then heroku create // create app for u 
+
+59:		precompiling all ur asset
+		RAILS_ENV=production bundle exec rake assets:precompile
+
+		if u got some error, go to config > initializers , devise.rb
+		pasted your key that shown in terminal
+		then run that command again
