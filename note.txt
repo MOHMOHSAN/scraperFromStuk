@@ -403,3 +403,23 @@
 		if u got some error, go to config > initializers , devise.rb
 		pasted your key that shown in terminal
 		then run that command again
+
+
+60:		push to git
+		
+		git add --all
+		git commit -m "Deploy Ready"
+		git push origin master
+		then check status , git status 
+		if there is nothing to commit, it is successfully added
+
+
+61:		git push heroku master
+		
+		if sqllite 3 error occurs, go to gemfile add
+
+		gem 'pg'  and move gem 'sqlite3' to under development testing 
+		group :development, :test do
+			gem 'sqlite3'
+		end
+
